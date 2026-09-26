@@ -1,0 +1,17 @@
+{
+  "name": "interview-arena",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Real-time multiplayer interview preparation party game for 2-8 students.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "express": "^5.1.0",
+    "openai": "^5.19.1",
+    "socket.io": "^4.8.1"
+  }
+}
