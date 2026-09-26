@@ -333,4 +333,8 @@ io.on("connection", socket => {
   });
 });
 
-server.listen(PORT, () => console.log(`Interview Arena running on http://localhost:${PORT}`));
+if (!process.env.VERCEL) {
+  server.listen(PORT, () => console.log(`Interview Arena running on http://localhost:${PORT}`));
+}
+
+module.exports = server;

@@ -52,3 +52,16 @@ This is a playable prototype, not a production deployment. Before public use, ad
 - voice answers + transcription
 - polished special-card mechanics
 - HTTPS and deployment configuration
+
+## v0.5 additions
+- Every question displays a visible category tag.
+- Review remark suggestions dynamically change by question type.
+- Each question type offers exactly 10 suggested phrases: 4 positive and 6 constructive/negative.
+- Clicking a suggestion inserts it into the review remark field; reviewers can still edit or add their own text.
+
+
+## Deploying to Vercel
+
+This version exports the HTTP server for Vercel and keeps the local `npm start` behavior. Vercel currently supports Node.js/Express deployments and WebSocket connections, including Socket.IO.
+
+Important: this prototype stores rooms in process memory. That is fine for a controlled demo, but it is not a durable multi-instance production architecture. For public use at scale, move room state and cross-instance Socket.IO coordination to shared infrastructure (for example Redis/Upstash or a dedicated realtime backend).
