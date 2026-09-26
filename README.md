@@ -52,9 +52,3 @@ This is a playable prototype, not a production deployment. Before public use, ad
 - voice answers + transcription
 - polished special-card mechanics
 - HTTPS and deployment configuration
-
-## v0.5 additions
-- Every question displays a visible category tag.
-- Review remark suggestions dynamically change by question type.
-- Each question type offers exactly 10 suggested phrases: 4 positive and 6 constructive/negative.
-- Clicking a suggestion inserts it into the review remark field; reviewers can still edit or add their own text.

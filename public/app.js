@@ -1,37 +1,7 @@
 const socket = io();
 let state = null, myId = null, code = null, evaluations = [], submitted = false;
 const $ = id => document.getElementById(id);
-const reviewSuggestions = {
-  HR: [
-    {text:"Clear introduction", tone:"positive"}, {text:"Relevant experience", tone:"positive"}, {text:"Confident tone", tone:"positive"}, {text:"Strong motivation", tone:"positive"},
-    {text:"Too generic", tone:"negative", map:"Too vague"}, {text:"Lacks evidence", tone:"negative", map:"No evidence"}, {text:"Weak role fit", tone:"negative", map:"Didn't answer"}, {text:"Too many buzzwords", tone:"negative", map:"Overly long"}, {text:"Rambling answer", tone:"negative", map:"Overly long"}, {text:"Weak closing", tone:"negative", map:"Poor structure"}
-  ],
-  Technical: [
-    {text:"Correct concept", tone:"positive"}, {text:"Clear explanation", tone:"positive"}, {text:"Good example", tone:"positive"}, {text:"Strong reasoning", tone:"positive"},
-    {text:"Conceptual gap", tone:"negative", map:"Weak reasoning"}, {text:"Inaccurate detail", tone:"negative", map:"Weak reasoning"}, {text:"No example", tone:"negative", map:"No evidence"}, {text:"Too jargon-heavy", tone:"negative", map:"Overly long"}, {text:"Misses a trade-off", tone:"negative", map:"Weak reasoning"}, {text:"Unclear logic", tone:"negative", map:"Poor structure"}
-  ],
-  Situational: [
-    {text:"Practical approach", tone:"positive"}, {text:"Good prioritization", tone:"positive"}, {text:"Clear ownership", tone:"positive"}, {text:"Considers stakeholders", tone:"positive"},
-    {text:"Too idealistic", tone:"negative", map:"Potential red flag"}, {text:"No escalation path", tone:"negative", map:"Didn't answer"}, {text:"Ignores risks", tone:"negative", map:"Potential red flag"}, {text:"Lacks concrete steps", tone:"negative", map:"No evidence"}, {text:"Poor prioritization", tone:"negative", map:"Poor structure"}, {text:"Weak outcome", tone:"negative", map:"Weak reasoning"}
-  ],
-  Behavioral: [
-    {text:"Strong STAR structure", tone:"positive"}, {text:"Concrete example", tone:"positive"}, {text:"Shows ownership", tone:"positive"}, {text:"Clear learning", tone:"positive"},
-    {text:"Generic example", tone:"negative", map:"Too vague"}, {text:"Missing result", tone:"negative", map:"No evidence"}, {text:"Too much context", tone:"negative", map:"Overly long"}, {text:"Weak reflection", tone:"negative", map:"Weak reasoning"}, {text:"Blames others", tone:"negative", map:"Potential red flag"}, {text:"No measurable impact", tone:"negative", map:"No evidence"}
-  ],
-  Case: [
-    {text:"Structured approach", tone:"positive"}, {text:"Good assumptions", tone:"positive"}, {text:"Relevant data", tone:"positive"}, {text:"Clear prioritization", tone:"positive"},
-    {text:"Unstructured thinking", tone:"negative", map:"Poor structure"}, {text:"Weak assumptions", tone:"negative", map:"Weak reasoning"}, {text:"Jumps to solution", tone:"negative", map:"Didn't answer"}, {text:"Misses key metric", tone:"negative", map:"No evidence"}, {text:"No trade-off", tone:"negative", map:"Weak reasoning"}, {text:"Limited analysis", tone:"negative", map:"Too vague"}
-  ],
-  Guesstimate: [
-    {text:"Clear assumptions", tone:"positive"}, {text:"Logical breakdown", tone:"positive"}, {text:"Good math setup", tone:"positive"}, {text:"Sanity-checked estimate", tone:"positive"},
-    {text:"Missing assumptions", tone:"negative", map:"No evidence"}, {text:"Arithmetic gap", tone:"negative", map:"Weak reasoning"}, {text:"No validation", tone:"negative", map:"No evidence"}, {text:"Unclear structure", tone:"negative", map:"Poor structure"}, {text:"Overcomplicates", tone:"negative", map:"Overly long"}, {text:"Jumps to a number", tone:"negative", map:"Weak reasoning"}
-  ],
-  Communication: [
-    {text:"Easy to follow", tone:"positive"}, {text:"Great simplification", tone:"positive"}, {text:"Audience-aware", tone:"positive"}, {text:"Concise delivery", tone:"positive"},
-    {text:"Too technical", tone:"negative", map:"Overly long"}, {text:"Jargon-heavy", tone:"negative", map:"Overly long"}, {text:"Unclear message", tone:"negative", map:"Poor structure"}, {text:"Too long", tone:"negative", map:"Overly long"}, {text:"Misses the audience", tone:"negative", map:"Potential red flag"}, {text:"No clear takeaway", tone:"negative", map:"Didn't answer"}
-  ]
-};
-
+const flags = ["Too vague","Didn't answer","No evidence","Poor structure","Weak reasoning","Overly long","Potential red flag"];
 
 socket.on("connect", () => { myId = socket.id; });
 function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.add("hidden"));$(id).classList.remove("hidden");}
@@ -68,7 +38,7 @@ socket.on("room:update",room=>{
     return;
   }
   if(room.phase==="gameover")return;
-  show("game");$("roundLabel").textContent=` ${room.round}/${room.totalRounds}`;$("question").textContent=room.question?.q||"";$("qType").textContent=room.question?.type||"";$("qType").className=`tag type-${String(room.question?.type||"general").toLowerCase()}`;$("timer").textContent=room.timeLeft;
+  show("game");$("roundLabel").textContent=` ${room.round}/${room.totalRounds}`;$("question").textContent=room.question?.q||"";$("qType").textContent=room.question?.type||"";$("timer").textContent=room.timeLeft;
   if(was!==room.round)resetRoundUI();
   if(room.phase==="answering"){
     $("answerPanel").classList.remove("hidden");$("resultsPanel").classList.add("hidden");
@@ -98,22 +68,13 @@ function reviewCard(x){
     <div class="answer-meta"><b>${esc(x.name)}</b><span>${x.evaluation?`AI Score: <strong>${x.base}</strong>`:"AI reviewing…"}</span></div>
     <div class="answer-text">${esc(x.answer)}</div>
     ${x.evaluation?`<div class="ai-review"><b>AI Review</b><p>${esc(x.evaluation.feedback)}</p><div class="metrics">Relevance ${x.evaluation.relevance} · Structure ${x.evaluation.structure} · Specificity ${x.evaluation.specificity} · Reasoning ${x.evaluation.reasoning} · Communication ${x.evaluation.communication} · Impact ${x.evaluation.impact}</div><span class="weakness">Main weakness: ${esc(x.evaluation.weakness)}</span></div>`:`<div class="ai-review pending">AI review will appear as soon as evaluation finishes.</div>`}
-    <div class="player-review"><div class="review-title-row"><b>Your review</b><span class="review-limit">Choose up to 4</span></div>${already?`<p class="hint">Review submitted. It will appear in the round recap.</p>`:`<p class="hint">Choose the phrases that best describe the answer, then add your own remark if needed.</p><div class="review-choice-grid">${getSuggestions(x).map(s=>`<button type="button" class="review-choice ${s.tone}" data-target="${x.id}" data-map="${esc(s.map||"")}" data-phrase="${esc(s.text)}" onclick="toggleReviewChoice(this)">${esc(s.text)}</button>`).join("")}</div><textarea id="remark-${x.id}" maxlength="500" placeholder="Add your own remark (optional)..."></textarea><button class="review-submit" onclick="submitReview('${x.id}')">Submit review</button>`}</div>
+    <div class="player-review"><b>Your review</b>${already?`<p class="hint">Review submitted. It will appear in the round recap.</p>`:`<div class="flag-grid">${flags.map(f=>`<label><input type="checkbox" data-flag="${esc(f)}" data-target="${x.id}"><span>${esc(f)}</span></label>`).join("")}</div><textarea id="remark-${x.id}" maxlength="500" placeholder="Add your own remark (optional)..."></textarea><button class="review-submit" onclick="submitReview('${x.id}')">Submit review</button>`}</div>
     ${x.reviews?.length?`<div class="review-history"><b>Reviews so far</b>${x.reviews.map(r=>`<div class="review-entry"><strong>${esc(r.reviewerName)}</strong><span>${new Date(r.at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</span><div>${r.flags?.map(esc).join(" · ")||""}</div>${r.remark?`<p>${esc(r.remark)}</p>`:""}</div>`).join("")}</div>`:""}
   </article>`;
 }
-function getSuggestions(x){return reviewSuggestions[x.type]||reviewSuggestions.HR;}
-window.toggleReviewChoice=(button)=>{
-  const selected=[...document.querySelectorAll(`.review-choice[data-target="${button.dataset.target}"].selected`)];
-  if(!button.classList.contains("selected") && selected.length>=4)return;
-  button.classList.toggle("selected");
-};
 window.submitReview=(targetId)=>{
-  const choices=[...document.querySelectorAll(`.review-choice[data-target="${targetId}"].selected`)];
-  const flags=[...new Set(choices.map(b=>b.dataset.map).filter(Boolean))].slice(0,4);
-  const phrases=choices.map(b=>b.dataset.phrase);
-  const custom=$("remark-"+targetId)?.value.trim()||"";
-  const remark=[...phrases,...(custom?[custom]:[])].join(" • ");
+  const boxes=[...document.querySelectorAll(`input[data-target="${targetId}"]:checked`)];
+  const flags=boxes.map(b=>b.dataset.flag);const remark=$("remark-"+targetId)?.value.trim()||"";
   if(!flags.length&&!remark)return;
   socket.emit("review:submit",{code,targetId,flags,remark});
 };
